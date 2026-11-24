@@ -3,6 +3,9 @@
 # Android app compilada manualmente (aapt2 + d8 + javac, sin Gradle)
 # =====================
 
+# ---------- Secrets ----------
+local.properties
+
 # ---------- Build artifacts ----------
 build/
 
