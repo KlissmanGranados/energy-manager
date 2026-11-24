@@ -1,0 +1,51 @@
+# =====================
+# firetv-microservice — .gitignore
+# Android app compilada manualmente (aapt2 + d8 + javac, sin Gradle)
+# =====================
+
+# ---------- Build artifacts ----------
+build/
+
+# ---------- Java compiled classes ----------
+*.class
+
+# ---------- APK y DEX ----------
+*.apk
+*.dex
+
+# ---------- Recursos compilados ----------
+*.res
+*.ap_
+res.zip
+
+# ---------- Claves SSH y configuración sensible ----------
+config/id_urano
+config/id_urano.*
+config/id_urano.old
+config/id_urano.pub.old
+config/urano.json
+
+# ---------- Librerías externas (si se gestionan por otro medio) ----------
+# libs/*.jar  (descomenta si los JARs no deben ir al repo)
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+*.swp
+*.swo
+*~
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Logs ----------
+*.log
+
+# ---------- Temp ----------
+*.tmp
+*.bak

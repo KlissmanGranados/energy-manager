@@ -1,0 +1,41 @@
+# =====================
+# urano-remote — .gitignore
+# Android app compilada manualmente (aapt2 + d8 + javac, sin Gradle)
+# =====================
+
+# ---------- Build artifacts ----------
+build/
+
+# ---------- Java compiled classes ----------
+*.class
+
+# ---------- APK y DEX ----------
+*.apk
+*.dex
+
+# ---------- Recursos compilados ----------
+*.res
+*.ap_
+res.zip
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+*.swp
+*.swo
+*~
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Logs ----------
+*.log
+
+# ---------- Temp ----------
+*.tmp
+*.bak

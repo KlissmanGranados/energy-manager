@@ -1,0 +1,38 @@
+# Android build artifacts
+*/build/
+
+# Java compiled classes
+*.class
+
+# APK files
+*.apk
+
+# DEX files
+*.dex
+
+# Resource cache
+*.res
+*.ap_
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Node (if any frontend tooling is added later)
+node_modules/
+package-lock.json
+yarn.lock
