@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Urano · Historial de cortes</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23141b31'/%3E%3Cpath d='M18 4 8 18h7l-2 10 11-15h-7z' fill='%23f59e0b'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b1020; --card:#141b31; --panel:#0e1526; --line:#243154; --fg:#e8eefc; --muted:#9fb0d0;
+    --up:#22c55e; --down:#64748b; --busy:#f59e0b; --danger:#ef4444; --accent:#3b82f6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--fg); min-height:100vh;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    padding:24px 16px;
+  }
+  .wrap{max-width:980px; margin:0 auto}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:20px}
+  h1{margin:0; font-size:22px; letter-spacing:.3px}
+  .sub{color:var(--muted); font-size:13px; margin-top:4px}
+  a{color:var(--accent)}
+  .back{color:var(--muted); text-decoration:none; font-size:14px; padding:8px 12px;
+    border:1px solid var(--line); border-radius:10px; background:var(--card)}
+  .back:hover,.back:focus-visible{color:var(--fg); outline:none; border-color:var(--accent)}
+
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px}
+  .kpi small{display:block; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.6px}
+  .kpi b{display:block; font-size:26px; margin-top:6px; font-variant-numeric:tabular-nums}
+  .kpi span{display:block; color:var(--muted); font-size:12px; margin-top:4px; min-height:15px}
+  .kpi.state b{display:flex; align-items:center; gap:10px; font-size:20px}
+  .dot{width:12px; height:12px; border-radius:50%; background:var(--down); flex:0 0 auto}
+  .dot.on{background:var(--up); box-shadow:0 0 0 5px rgba(34,197,94,.12)}
+  .dot.off{background:var(--danger); box-shadow:0 0 0 5px rgba(239,68,68,.14); animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px}
+  .filters{display:grid; grid-template-columns:repeat(6,1fr) auto; gap:10px; align-items:end; margin-bottom:16px}
+  .filters .actions{display:flex; gap:8px}
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px}
+  input,select{
+    width:100%; background:var(--panel); border:1px solid var(--line); color:var(--fg);
+    border-radius:10px; padding:9px 10px; font-size:14px; font-family:inherit; color-scheme:dark;
+  }
+  input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+  button{
+    appearance:none; border:none; border-radius:10px; padding:10px 14px; font-size:14px;
+    font-weight:600; cursor:pointer; color:#fff; background:var(--accent); font-family:inherit;
+  }
+  button.ghost{background:transparent; border:1px solid var(--line); color:var(--muted)}
+  button:disabled{opacity:.4; cursor:not-allowed}
+
+  .tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:12px; transition:opacity .15s}
+  .tablewrap.loading{opacity:.5}
+  button.search{display:inline-flex; align-items:center; justify-content:center; gap:8px}
+  .spinner{display:none; width:14px; height:14px; border-radius:50%; flex:0 0 auto;
+    border:2px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin .7s linear infinite}
+  .busy .spinner{display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  table{width:100%; border-collapse:collapse; font-size:14px; min-width:420px}
+  th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap}
+  th{background:var(--panel); color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.5px}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:rgba(59,130,246,.06)}
+  td.num{color:var(--muted); font-variant-numeric:tabular-nums}
+  td.when{font-variant-numeric:tabular-nums}
+  .badge{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600}
+  .badge.outage{background:rgba(239,68,68,.14); color:#fca5a5}
+  .badge.back{background:rgba(34,197,94,.14); color:#86efac}
+  .tag{display:inline-block; margin-left:8px; padding:1px 7px; border-radius:999px; font-size:11px;
+    background:rgba(159,176,208,.14); color:var(--muted); vertical-align:1px}
+  .badge.prev{background:rgba(159,176,208,.14); color:var(--muted)}
+  td.dur{font-variant-numeric:tabular-nums; font-weight:600}
+  td.dur.live{color:#fca5a5}
+  .empty{padding:36px 14px; text-align:center; color:var(--muted)}
+
+  .pager{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; flex-wrap:wrap}
+  .pager .info{color:var(--muted); font-size:13px}
+  .pager .btns{display:flex; gap:8px}
+  .msg{min-height:20px; margin:0 0 12px; font-size:14px; color:var(--muted)}
+  .msg.err{color:var(--danger)}
+
+  @media (max-width:820px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .filters{grid-template-columns:repeat(2,1fr)}
+    .filters .actions{grid-column:1 / -1; display:flex; gap:8px}
+    .filters .actions button{flex:1}
+  }
+  @media (max-width:420px){
+    .kpi b{font-size:22px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Historial de cortes el&eacute;ctricos</h1>
+      <div class="sub" id="sub">Urano &mdash; controlador de energ&iacute;a</div>
+    </div>
+    <a class="back" href="/">&larr; Control de Urano</a>
+  </header>
+
+  <section class="kpis" aria-label="Resumen">
+    <div class="kpi state">
+      <small>Servicio el&eacute;ctrico</small>
+      <b><i class="dot" id="elecDot"></i><span id="elecTxt">&mdash;</span></b>
+      <span id="elecHint"></span>
+    </div>
+    <div class="kpi">
+      <small>Cortes</small>
+      <b id="kTotal">&mdash;</b>
+      <span id="kTotalHint"></span>
+    </div>
+    <div class="kpi">
+      <small>Duraci&oacute;n promedio</small>
+      <b id="kAvg">&mdash;</b>
+      <span id="kAvgHint"></span>
+    </div>
+    <div class="kpi">
+      <small>Corte m&aacute;s largo</small>
+      <b id="kMax">&mdash;</b>
+      <span id="kMaxHint"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <form class="filters" id="filters">
+      <div>
+        <label for="fStatus">Estado</label>
+        <select id="fStatus">
+          <option value="">Todos</option>
+          <option value="closed">Finalizados</option>
+          <option value="ongoing">En curso</option>
+          <option value="started_before_range">Iniciados antes del rango</option>
+        </select>
+      </div>
+      <div>
+        <label for="fFrom">Desde</label>
+        <input type="date" id="fFrom">
+      </div>
+      <div>
+        <label for="fTo">Hasta</label>
+        <input type="date" id="fTo">
+      </div>
+      <div>
+        <label for="fMinDur">Duraci&oacute;n &ge; (min)</label>
+        <input type="number" id="fMinDur" min="0" step="1" inputmode="numeric" placeholder="Cualquiera">
+      </div>
+      <div>
+        <label for="fSort">Orden</label>
+        <select id="fSort">
+          <option value="date_time:desc">M&aacute;s recientes primero</option>
+          <option value="date_time:asc">M&aacute;s antiguos primero</option>
+        </select>
+      </div>
+      <div>
+        <label for="fSize">Por p&aacute;gina</label>
+        <select id="fSize">
+          <option value="10" selected>10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button type="submit" class="search" id="fSearch"><span class="spinner" aria-hidden="true"></span><span>Buscar</span></button>
+        <button type="button" class="ghost" id="fClear">Limpiar</button>
+      </div>
+    </form>
+
+    <p class="msg" id="msg" role="status"></p>
+
+    <div class="tablewrap" id="tablewrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Inicio del corte</th><th>Restablecido</th><th>Duraci&oacute;n</th><th>Estado</th></tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="5" class="empty">Cargando&hellip;</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <div class="info" id="pageInfo"></div>
+      <div class="btns">
+        <button type="button" class="ghost" id="prev">&larr; Anterior</button>
+        <button type="button" class="ghost" id="next">Siguiente &rarr;</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var OUTAGE = 1;
+  var REFRESH_MS = 30000;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var fStatus = $("fStatus"), fFrom = $("fFrom"), fTo = $("fTo"), fSort = $("fSort"), fSize = $("fSize");
+  var fMinDur = $("fMinDur");
+  var rows = $("rows"), msg = $("msg"), pageInfo = $("pageInfo"), prev = $("prev"), next = $("next");
+
+  var page = 1, totalPages = 1, timer = null, seq = 0;
+  var fSearch = $("fSearch"), tablewrap = $("tablewrap");
+  // filtros de la ultima busqueda: la paginacion y el refresco usan estos, no lo que
+  // se este editando en el formulario sin pulsar "Buscar"
+  var aplicados = null;
+
+  $("sub").textContent = location.host + " — controlador de energía";
+
+  // mismo token que guarda la pagina de control (mismo origen => mismo localStorage)
+  var token = "";
+  try { token = localStorage.getItem("urano_token") || ""; } catch(e){}
+
+  function headers(){
+    var h = {};
+    if (token) h["X-Token"] = token;
+    return h;
+  }
+
+  function flash(text, cls){
+    msg.textContent = text || "";
+    msg.className = "msg" + (cls ? " " + cls : "");
+  }
+
+  // ---- formato ----
+  function fmtDur(s){
+    if (s == null) return "—";
+    s = Math.round(s);
+    if (s < 60) return s + " s";
+    var m = Math.floor(s / 60), r = s % 60;
+    if (m < 60) return r ? m + " min " + (r < 10 ? "0" : "") + r + " s" : m + " min";
+    var h = Math.floor(m / 60), mm = m % 60;
+    if (h < 24) return h + " h " + (mm < 10 ? "0" : "") + mm + " min";
+    return Math.floor(h / 24) + " d " + (h % 24) + " h";
+  }
+  // "16/10/2026, 6:13:20 p. m." en hora local; a mano porque toLocaleString con
+  // hour12 cambia de un navegador a otro ("p. m.", "p.m.", espacios no separables)
+  function dos(n){ return (n < 10 ? "0" : "") + n; }
+  function fmtFecha(iso){
+    var d = new Date(iso);
+    if (isNaN(d)) return iso;
+    var h24 = d.getHours(), h = h24 % 12 || 12;
+    return dos(d.getDate()) + "/" + dos(d.getMonth() + 1) + "/" + d.getFullYear() + ", " +
+      h + ":" + dos(d.getMinutes()) + ":" + dos(d.getSeconds()) + (h24 < 12 ? " a. m." : " p. m.");
+  }
+  // "YYYY-MM-DD" del input (fecha LOCAL) -> ISO UTC del inicio o del final de ese dia
+  function diaLocalIso(v, finDelDia){
+    var p = v.split("-");
+    var d = finDelDia ? new Date(+p[0], p[1] - 1, +p[2], 23, 59, 59, 999)
+                      : new Date(+p[0], p[1] - 1, +p[2]);
+    return d.toISOString();
+  }
+
+  // ---- peticiones ----
+  function getJson(url){
+    return fetch(url, {headers: headers(), cache:"no-store"}).then(function(r){
+      if (r.status === 401) throw {auth:true};
+      return r.json().then(function(j){
+        if (!r.ok) throw new Error(j && j.error ? j.error : "HTTP " + r.status);
+        return j;
+      });
+    });
+  }
+
+  // lee y valida el formulario; null (con el error mostrado) si no es valido
+  function leerFiltros(){
+    if (fFrom.value && fTo.value && fFrom.value > fTo.value) {
+      flash("La fecha «Desde» no puede ser posterior a «Hasta».", "err");
+      return null;
+    }
+    var minDur = fMinDur.value.trim() === "" ? null : Number(fMinDur.value);
+    if (minDur != null && !(minDur >= 0)) {
+      flash("La duración mínima debe ser 0 o más minutos.", "err");
+      return null;
+    }
+    var fechas = [];
+    if (fFrom.value) fechas.push("date_start=" + encodeURIComponent(diaLocalIso(fFrom.value, false)));
+    if (fTo.value)   fechas.push("date_end=" + encodeURIComponent(diaLocalIso(fTo.value, true)));
+    var otros = ["page_size=" + fSize.value, "sort=" + encodeURIComponent(fSort.value)];
+    if (fStatus.value) otros.push("status=" + fStatus.value);
+    if (minDur != null) otros.push("min_duration=" + Math.round(minDur * 60));
+    return {fechas: fechas, otros: otros};
+  }
+
+  function ocupado(on){
+    fSearch.disabled = on;
+    fSearch.classList.toggle("busy", on);
+    fSearch.setAttribute("aria-busy", on ? "true" : "false");
+    tablewrap.classList.toggle("loading", on);
+  }
+
+  // conSpinner: carga pedida por el usuario (buscar, paginar); el refresco periodico es silencioso
+  function load(conSpinner){
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (!aplicados) return;
+    var mine = ++seq;  // descartar respuestas de cargas anteriores
+    if (conSpinner) ocupado(true);
+    var fechas = aplicados.fechas;
+    var q = aplicados.otros.concat(["page=" + page], fechas);
+
+    var hist = getJson("/api/power_history/outages?" + q.join("&"));
+    var sum = getJson("/api/power_history/summary" + (fechas.length ? "?" + fechas.join("&") : ""));
+    var elec = fetch("/api/service-electric", {headers: headers(), cache:"no-store"})
+      .then(function(r){ return r.ok ? r.text().then(function(t){ return t.trim() === "true"; }) : null; })
+      .catch(function(){ return null; });
+
+    Promise.all([hist, sum, elec]).then(function(res){
+      if (mine !== seq) return;
+      flash("");
+      renderTabla(res[0]);
+      renderKpis(res[1], res[2], fechas.length > 0);
+    }).catch(function(e){
+      if (mine !== seq) return;
+      if (e && e.auth) {
+        msg.className = "msg err";
+        msg.textContent = "Token inválido o no configurado. Configúralo en ";
+        var a = document.createElement("a");
+        a.href = "/"; a.textContent = "Control de Urano → Ajustes";
+        msg.appendChild(a);
+      } else {
+        flash("No se pudo cargar el historial: " + (e && e.message ? e.message : "sin conexión"), "err");
+      }
+    }).then(function(){
+      if (mine !== seq) return;
+      ocupado(false);
+      // pestaña oculta: se corta la cadena y visibilitychange la reanuda
+      timer = setTimeout(function(){ if (!document.hidden) load(false); }, REFRESH_MS);
+    });
+  }
+
+  // ---- render ----
+  function celda(tr, text, cls){
+    var td = document.createElement("td");
+    if (cls) td.className = cls;
+    if (text != null) td.textContent = text;
+    tr.appendChild(td);
+    return td;
+  }
+
+  // celda de fecha con el ISO UTC en el title, o "—" si no aplica
+  function celdaFecha(tr, iso){
+    var td = celda(tr, iso ? fmtFecha(iso) : "—", "when");
+    if (iso) td.title = iso + " (UTC)";
+    return td;
+  }
+
+  var ESTADOS = {
+    closed:               {cls:"back",   txt:"🔌 Restablecido", title:"Corte finalizado"},
+    ongoing:              {cls:"outage", txt:"⚡ En curso",      title:"Todavía sin servicio"},
+  };
+
+  function renderTabla(d){
+    var m = d.metadata, list = d.results;
+    totalPages = Math.max(1, Math.ceil(m.total_elements / m.page_size));
+    if (page > totalPages && m.total_elements > 0) { page = totalPages; setTimeout(function(){ load(true); }, 0); return; }
+
+    rows.textContent = "";
+    if (!list.length) {
+      var tr = document.createElement("tr");
+      var td = celda(tr, m.total_elements ? "No hay cortes en esta página." : "No hay cortes registrados con estos filtros.", "empty");
+      td.colSpan = 5;
+      rows.appendChild(tr);
+    }
+    list.forEach(function(c){
+      var tr = document.createElement("tr");
+      celda(tr, c.outage_id != null ? c.outage_id : c.back_on_id, "num");
+      var ini = celdaFecha(tr, c.start);
+      if (c.started_before_range) {
+        var t = document.createElement("span");
+        t.className = "tag";
+        t.textContent = "antes del rango";
+        t.title = "El corte empezó antes de la fecha «Desde»: no cuenta en los indicadores del período";
+        ini.appendChild(t);
+      }
+      celdaFecha(tr, c.end);
+      if (c.end == null && c.start) {
+        // en vivo: se recalcula en cada refresco
+        celda(tr, fmtDur((Date.now() - new Date(c.start)) / 1000), "dur live").title = "Sigue sin servicio";
+      } else {
+        celda(tr, fmtDur(c.duration_sec), "dur");
+      }
+      var e = ESTADOS[c.status] || {cls:"prev", txt:c.status, title:""};
+      var b = document.createElement("span");
+      b.className = "badge " + e.cls;
+      b.textContent = e.txt;
+      b.title = e.title;
+      celda(tr, null).appendChild(b);
+      rows.appendChild(tr);
+    });
+
+    pageInfo.textContent = "Página " + m.page + " de " + totalPages + " · " + m.total_elements +
+      (m.total_elements === 1 ? " corte" : " cortes");
+    prev.disabled = m.page <= 1;
+    next.disabled = m.page >= totalPages;
+  }
+
+  function renderKpis(s, elec, filtrado){
+    var periodo = filtrado ? "en el período" : "en todo el historial";
+    $("kTotal").textContent = s.total_outages;
+    $("kTotalHint").textContent = periodo;
+    $("kAvg").textContent = s.closed_outages ? fmtDur(s.avg_duration_sec) : "—";
+    $("kAvgHint").textContent = s.closed_outages ? s.closed_outages + (s.closed_outages === 1 ? " corte finalizado" : " cortes finalizados") : "sin cortes finalizados";
+    $("kMax").textContent = s.closed_outages ? fmtDur(s.max_duration_sec) : "—";
+    $("kMaxHint").textContent = s.closed_outages ? "total sin luz: " + fmtDur(s.total_duration_sec) : "";
+
+    // estado actual: ping en vivo + ultimo evento registrado (global, sin filtros)
+    var last = s.last_event;
+    var enCorte = last && last.type.id === OUTAGE;
+    var dot = $("elecDot"), txt = $("elecTxt"), hint = $("elecHint");
+    if (elec === true) {
+      dot.className = "dot on"; txt.textContent = "Con servicio";
+      hint.textContent = last && !enCorte ? "desde " + fmtFecha(last.date_time) : "";
+    } else if (elec === false) {
+      dot.className = "dot off"; txt.textContent = "Sin servicio";
+      hint.textContent = enCorte
+        ? "en corte hace " + fmtDur((Date.now() - new Date(last.date_time)) / 1000)
+        : "confirmando corte…";
+    } else {
+      dot.className = "dot"; txt.textContent = "—"; hint.textContent = "sin dato";
+    }
+  }
+
+  // ---- eventos ----
+  // la busqueda solo se ejecuta con el boton "Buscar" (o Enter en el formulario)
+  function buscar(){
+    var f = leerFiltros();
+    if (!f) return;
+    aplicados = f;
+    page = 1;
+    load(true);
+  }
+  $("filters").addEventListener("submit", function(e){ e.preventDefault(); buscar(); });
+  $("fClear").addEventListener("click", function(){
+    fStatus.value = ""; fFrom.value = ""; fTo.value = ""; fMinDur.value = ""; fSort.value = "date_time:desc";
+    buscar();
+  });
+  prev.addEventListener("click", function(){ if (page > 1) { page--; load(true); } });
+  next.addEventListener("click", function(){ if (page < totalPages) { page++; load(true); } });
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) load(false); });
+
+  buscar();
+})();
+</script>
+</body>
+</html>
