@@ -77,12 +77,18 @@ cd firetv-microservice
 ```bash
 cd urano-remote
 
+# Configurar el token (una sola vez; local.properties está en .gitignore)
+cp local.properties.example local.properties
+# editar local.properties y completar URANO_TOKEN
+
 # Compilar + instalar en el celular
 ./build.sh
 
 # Solo compilar el APK
 ./build.sh build
 ```
+
+El token se inyecta en tiempo de compilación como `BuildConfig.TOKEN`; nunca debe escribirse en el código fuente.
 
 ## Configuración
 
@@ -106,6 +112,12 @@ http://<ip-del-fire-tv>:8080/
 ```
 
 La página principal muestra el estado actual del servicio eléctrico y permite navegar al historial de cortes.
+
+## Capturas
+
+| Panel de control (`/`) | Historial de cortes (`/power_dashboard`) |
+|---|---|
+| <img src="docs/screenshots/urano-remote.png" alt="Panel de control de Urano" width="240"> | <img src="docs/screenshots/power-dashboard.png" alt="Historial de cortes eléctricos" width="640"> |
 
 ## Notas
 
